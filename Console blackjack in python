@@ -1,0 +1,339 @@
+from deck_of_cards import deck_of_cards
+import time
+from termcolor import colored
+
+
+def main():
+    player_bet = welcome()
+    black_jack(player_bet)
+
+
+def welcome():
+    bet = None
+    print("")
+    print(colored('Welcome to Black Jack!','green',attrs=['bold']))
+    print("")
+    print("You can quit any time by pressing Ctrl+C")
+    print("")
+    while bet not in ['5','10','25','50','100']:
+        bet = input("Your starting credit is 1000 dollars. Place your bet 5$ | 10$ | 25$ | 50$ | 100$ : ")
+    print("")
+    print(f"Your bet: {bet}$")
+    print("")
+    player_bet = int(bet)
+    return player_bet
+
+
+def black_jack(bet):
+    game_on = True
+    current_balance = 1000
+    count_win = []
+    count_lose = []
+    deck_obj = deck_of_cards.DeckOfCards()
+    press_enter_to_start()
+    while game_on:
+        # Player's turn
+        player_score = player_turn(deck_obj)
+        if player_score >= 21:
+            won_or_lost(player_score,count_win,count_lose)
+            current_balance = new_player_balance(player_score,current_balance,bet)
+            for i in range(150):
+                print("-",end="")
+        else:
+            # Dealer's turn
+            dealer_score = dealer_turn(deck_obj)
+            check_who_won(player_score,dealer_score,count_win,count_lose)
+            current_balance = new_player_balance_after_dealer_turn(dealer_score,player_score,current_balance,bet)
+            # current_balance = player_balance_winning(current_balance,bet)
+            for i in range(150):
+                print("-",end="")
+        # in case my deck is about to go empty, the game should be finished
+        if len(deck_obj.deck) < 13:
+            play_again = who_won_overall(count_win,count_lose)
+            game_on = wanna_play_again(play_again,deck_obj)
+
+
+def new_player_balance(player_value,balance,player_bet):
+    if player_value == 21:
+        balance = balance + player_bet
+    else:
+        balance = balance - player_bet
+    print(f"Current balance: {balance}$")
+    return balance
+
+
+def new_player_balance_after_dealer_turn(dealer_value,player_value,balance,player_bet):
+    if dealer_value == 21:
+        balance = balance - player_bet
+    elif dealer_value > 21:
+        balance = balance + player_bet
+    else:
+        if player_value > dealer_value:
+            balance = balance + player_bet
+        elif dealer_value > player_value:
+            balance = balance - player_bet
+    print(f"Current balance: {balance}$")
+    return balance
+
+
+def check_who_won(player_value,dealer_value,win_count,lose_count):
+    if dealer_value == 21:
+        lose_count.append("")
+        return lose_count
+    elif dealer_value > 21:
+        win_count.append("")
+        return win_count
+    else:
+        if player_value > dealer_value:
+            print(colored('Player wins!','green',attrs=['bold']))
+            win_count.append("")
+            return win_count
+        elif dealer_value > player_value:
+            print(colored('Dealer wins!','red',attrs=['bold']))
+            lose_count.append("")
+            return lose_count
+        else:
+            print(colored('PUSH','blue',attrs=['bold']))
+
+
+def won_or_lost(value,win_count,lose_count):
+    if value == 21:
+        win_count.append("")
+        return win_count
+    elif value > 21:
+        lose_count.append("")
+        return lose_count
+
+
+def wanna_play_again(play_again_input,deck_of_cards):
+    if play_again_input.lower() == 'y':
+        deck_reset = deck_of_cards.reset_deck()
+        return deck_reset
+    else:
+        print("")
+        print("Goodbye!")
+        print("")
+        game_on = False
+        return game_on
+
+
+def who_won_overall(win_count,lose_count):
+    play_again = ""
+    if len(win_count) > len(lose_count):
+        while play_again.lower() not in ["y", "n"]:
+            print("")
+            play_again = input("Congrats! You won! Do you want to play again Y | N ?\n")
+    elif len(lose_count) > len(win_count):
+        while play_again.lower() not in ["y", "n"]:
+            print("")
+            play_again = input("Dealer won! Do you want to play again Y | N ?\n")
+    else:
+        while play_again.lower() not in ["y", "n"]:
+            print("")
+            play_again = input("No winnings here, you two are even! Do you want to play again Y | N ?\n")
+    return play_again
+
+
+def press_enter_to_start():
+    start = None
+    while start != "":
+        start = input("Press enter to start: ")
+
+
+def player_turn(deck_of_cards):
+    star_time = time.time()
+    print("")
+    print(colored(" Player's turn! ",'grey','on_cyan',attrs=['bold']))
+    while time.time() - star_time < 2:
+        continue
+    cards = []
+    cards_values = []
+    cards_for_printing = []
+    # printing first two cards and calculating their sum
+    result = print_first_two_cards(deck_of_cards,cards,cards_values,cards_for_printing)
+    next_move = is_it_21_player(result)
+    # asking for input - HIT with another card or STAND
+    while next_move.lower() not in ["s","h"]:
+        next_move = input("HIT or STAND ( H | S ): ")
+    # printing cards until result >= 21 or STAND
+    while next_move.lower() != "s":
+        result = print_another_card(deck_of_cards,cards,cards_values,cards_for_printing)
+    # did player hit 21 or more or less
+        next_move = is_it_21_player(result)
+    # when input becomes STAND, I'll need result to compare with dealer's result
+    final_result = return_result(result)
+    return final_result
+
+
+def return_result(list_of_values):
+    final_result = 0
+    if len(list_of_values) > 1:
+        for i in list_of_values:
+            if i > final_result:
+                final_result = i
+    else:
+        final_result = int(list_of_values[0])
+    return final_result
+
+
+def dealer_turn(deck_of_cards):
+    start_time = time.time()
+    print("")
+    print(colored(" Dealer's turn! ",'grey','on_red',attrs=['bold']))
+    while time.time() - start_time < 2:
+        continue
+    cards = []
+    cards_values = []
+    cards_for_printing = []
+    # printing first two cards
+    result = print_first_two_cards(deck_of_cards,cards,cards_values,cards_for_printing)
+    # did first two cards already gave 21 or more? if so, dealer turn will become False
+    dealer_turn = is_it_21_dealer(result)
+    # if cards below 17, printing another card
+    while dealer_turn:
+        start_time = time.time()
+        # just a taking a sec before every dealer's move so it wouldn't all be printed at the same time
+        while time.time() - start_time < 1:
+            continue
+        result = print_another_card(deck_of_cards,cards,cards_values,cards_for_printing)
+        dealer_turn = is_it_21_dealer(result)
+    final_result = return_result(result)
+    return final_result
+
+
+def print_another_card(deck_of_cards,card_list,card_value_list,cards_for_drawing_list):
+    next_card = deck_of_cards.give_random_card()
+    cards_for_drawing_list.append(next_card)
+    card_list.append(next_card.name)
+    card_value_list.append(next_card.value)
+    print_cards(cards_for_drawing_list)
+    result = sum_card_values(card_value_list)
+    print("")
+    return result
+
+
+def print_first_two_cards(deck_of_cards,card_list,card_value_list,cards_for_drawing_list):
+    for i in range(2):
+        card = deck_of_cards.give_random_card()
+        cards_for_drawing_list.append(card)
+        card_list.append(card.name)
+        card_value_list.append(card.value)
+    print_cards(cards_for_drawing_list)
+    # checking if their sum is 21
+    result = sum_card_values(card_value_list)
+    print("")
+    return result
+
+
+
+def is_it_21_dealer(values):
+    dealer_turn = True
+    for value in values:
+        if value == 21:
+            print(colored('BLACK JACK! Dealer wins!','red',attrs=['bold']))
+            dealer_turn = False
+            break
+        elif value > 21:
+            print(colored('Player wins!','green',attrs=['bold']))
+            dealer_turn = False
+            break
+        elif value >= 17:
+            dealer_turn = False
+            break
+    return dealer_turn
+
+"""
+This function takes list of sums 
+"""
+def is_it_21_player(values):
+    next_move = ""
+    count = 0
+    for value in values:
+        if value == 21:
+            print(colored('BLACK JACK! Player wins!','green',attrs=['bold']))
+            next_move = "s"
+            break
+        elif value > 21:
+            print(colored('BUST!','red',attrs=['bold']))
+            next_move = "s"
+            break
+        else:
+            count += 1
+    if len(values) == count:
+        while next_move not in ["h","s"]:
+            next_move = input("HIT or STAND ( H | S): ")
+    return next_move
+
+"""
+This function is taking a list of pulled cards and printing them.
+"""
+def print_cards(list_of_cards):
+    # creating list of dictionaries; each dictionary is one pulled card and represents a drawning of a card
+    lists_of_cards_ready_for_printing = []
+    for card in list_of_cards:
+        x = draw_single_card(card)
+        lists_of_cards_ready_for_printing.append(x)
+    # to print one card by the other, the python should print one line of all cards at a time
+    for i in range(7):
+        for x in lists_of_cards_ready_for_printing:
+            print(x[i], end="  ")
+        print("")
+
+"""
+This function takes a single card from the deck and returns drawing of that card in the form of dictionary.
+"""
+def draw_single_card(card):
+    # converting numbers to symbols <3 , <> , <3- , E3
+    if card.suit == 0:
+        card_symbol = colored("♠︎",'grey',attrs=['bold'])
+    elif card.suit == 1:
+        card_symbol = colored("♥︎",'red',attrs=['bold'])
+    elif card.suit == 2:
+        card_symbol = colored("♦︎",'red',attrs=['bold'])
+    else:
+        card_symbol = colored("♣︎",'grey',attrs=['bold'])
+    # the first letter in card name will be card value except for 10
+    if card.name[0] == "1":
+        card_value = '10'
+    else:
+        card_value = " " + card.name[0]
+    # building a card
+    drawn_card = {}
+    drawn_card[0] = "  --------- "
+    drawn_card[1] = " |" + card_value + "       |"
+    drawn_card[2] = " | " + card_symbol + "      |"
+    drawn_card[3] = " |         |"
+    drawn_card[4] = " |       " + card_symbol + "|"
+    drawn_card[5] = " |      " + card_value + " |"
+    drawn_card[6] = "  --------- "
+    return drawn_card
+
+"""
+This function takes card values and returns sum of it. It shall return two 
+different sums (packed in the form of list) in case one of the cards is Ace
+- in that case Ace will have value 1 or 11. However, if the sum with Ace being
+11 is greater than 21, that sum should be ignored, and the other one returned 
+alone as only member of the list.
+"""
+def sum_card_values(values):
+    result = 0
+    result_list = []
+    for value in values:
+        if value in [11,12,13]:
+            value = 10
+        result += value
+    result_list.append(result)
+    if 1 in values:
+        result1 = result + 10
+        if result1 <= 21:
+            result_list.append(result1)
+            print(f"{result} / {result1}")
+        else:
+            print(result)
+    else:
+        print(result)
+    return result_list
+
+
+if __name__ == '__main__':
+    main()
