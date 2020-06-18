@@ -44,7 +44,6 @@ def black_jack(bet):
             dealer_score = dealer_turn(deck_obj)
             check_who_won(player_score,dealer_score,count_win,count_lose)
             current_balance = new_player_balance_after_dealer_turn(dealer_score,player_score,current_balance,bet)
-            # current_balance = player_balance_winning(current_balance,bet)
             for i in range(150):
                 print("-",end="")
         # in case my deck is about to go empty, the game should be finished
@@ -152,9 +151,6 @@ def player_turn(deck_of_cards):
     # printing first two cards and calculating their sum
     result = print_first_two_cards(deck_of_cards,cards,cards_values,cards_for_printing)
     next_move = is_it_21_player(result)
-    # asking for input - HIT with another card or STAND
-    while next_move.lower() not in ["s","h"]:
-        next_move = input("HIT or STAND ( H | S ): ")
     # printing cards until result >= 21 or STAND
     while next_move.lower() != "s":
         result = print_another_card(deck_of_cards,cards,cards_values,cards_for_printing)
